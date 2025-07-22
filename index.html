@@ -2,8 +2,9 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <!-- Meta tag essencial para design responsivo. Garante que a página renderize corretamente em todos os dispositivos. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agenda de Escala 2x2</title>
+    <title>Agenda de Escala 2x2 (Responsiva)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,74 +12,82 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f1f5f9;
+            background-color: #f1f5f9; /* slate-100 */
         }
+        /* O grid do calendário usa repeat(7, ...) para sempre ter 7 colunas (dias da semana), 
+           e minmax(0, 1fr) permite que elas encolham para caber em telas pequenas. */
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, minmax(0, 1fr));
-            gap: 4px;
+            gap: 2px; /* Reduzido o gap para telas menores */
         }
+        /* Garante que os dias sejam quadrados, o que fica visualmente agradável em qualquer tamanho de tela. */
         .day {
             aspect-ratio: 1 / 1;
         }
         .work-day {
             background-color: #dbeafe; /* blue-100 */
             color: #1e40af; /* blue-800 */
-            border: 1px solid #93c5fd; /* blue-300 */
+            border: 1px solid #bfdbfe; /* blue-200 */
         }
         .off-day {
             background-color: #dcfce7; /* green-100 */
             color: #166534; /* green-800 */
-            border: 1px solid #86efac; /* green-300 */
+            border: 1px solid #a7f3d0; /* green-200 */
         }
+        /* Destaque mais visível para o dia atual. */
         .today {
-            box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.8);
+            box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.9); /* amber-500 com mais opacidade */
             z-index: 10;
         }
     </style>
 </head>
-<body class="antialiased text-slate-800 p-4 sm:p-6 md:p-8">
+<body class="antialiased text-slate-800 p-2 sm:p-4 md:p-6">
 
+    <!-- O max-w-7xl centraliza o conteúdo e evita que ele fique muito largo em telas grandes. -->
     <div class="max-w-7xl mx-auto">
-        <!-- Header -->
-        <header class="text-center mb-8">
-            <h1 id="main-title" class="text-3xl sm:text-4xl font-bold text-slate-900">Agenda de Escala 2x2 - 2025</h1>
-            <p class="mt-2 text-lg text-slate-600">Sua escala de trabalho e folgas para o ano.</p>
+        <!-- Header com tamanhos de fonte responsivos. O texto diminui em telas menores. -->
+        <header class="text-center mb-6">
+            <h1 id="main-title" class="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900">Agenda de Escala 2x2</h1>
+            <p class="mt-1 sm:mt-2 text-base sm:text-lg text-slate-600">Sua escala de trabalho e folgas.</p>
         </header>
 
-        <!-- Legend -->
-        <div class="flex justify-center items-center space-x-6 mb-8 p-4 bg-white rounded-lg shadow-md">
+        <!-- Legenda com flex-wrap para quebrar a linha em telas muito pequenas, se necessário. -->
+        <div class="flex flex-wrap justify-center items-center space-x-4 sm:space-x-6 mb-6 p-3 bg-white rounded-lg shadow-sm">
             <div class="flex items-center space-x-2">
-                <div class="w-6 h-6 rounded-full work-day"></div>
-                <span class="font-medium">Trabalho</span>
+                <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full work-day"></div>
+                <span class="text-sm sm:text-base font-medium">Trabalho</span>
             </div>
             <div class="flex items-center space-x-2">
-                <div class="w-6 h-6 rounded-full off-day"></div>
-                <span class="font-medium">Folga</span>
+                <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full off-day"></div>
+                <span class="text-sm sm:text-base font-medium">Folga</span>
             </div>
         </div>
         
-        <!-- Year Navigation -->
-        <div class="flex justify-center items-center space-x-4 mb-8">
-            <button id="prev-year" class="px-4 py-2 bg-white rounded-lg shadow-md hover:bg-slate-100 transition-colors duration-200 font-semibold text-slate-700">&lt; Ano Anterior</button>
-            <span id="current-year" class="text-2xl font-bold text-slate-900">2025</span>
-            <button id="next-year" class="px-4 py-2 bg-white rounded-lg shadow-md hover:bg-slate-100 transition-colors duration-200 font-semibold text-slate-700">Próximo Ano &gt;</button>
+        <!-- Navegação de ano. Os botões e o texto são centralizados e se ajustam bem. -->
+        <div class="flex justify-center items-center space-x-2 sm:space-x-4 mb-6">
+            <button id="prev-year" class="px-3 py-2 bg-white rounded-lg shadow-sm hover:bg-slate-100 transition-colors duration-200 font-semibold text-slate-700 text-sm sm:text-base">&lt; Ano</button>
+            <span id="current-year" class="text-xl sm:text-2xl font-bold text-slate-900">2025</span>
+            <button id="next-year" class="px-3 py-2 bg-white rounded-lg shadow-sm hover:bg-slate-100 transition-colors duration-200 font-semibold text-slate-700 text-sm sm:text-base">Ano &gt;</button>
         </div>
 
-        <!-- Calendar Container -->
-        <div id="calendar-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <!-- Months will be generated by JavaScript here -->
+        <!-- O grid de meses agora tem 1 coluna em telas pequenas, 2 em médias e 3 ou 4 em telas grandes.
+             Isso é o núcleo do design responsivo para o calendário. -->
+        <div id="calendar-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <!-- Os meses serão gerados pelo JavaScript aqui -->
         </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             // --- CONFIGURATION ---
-            // Based on the user's input: Worked on July 21 and 22, 2025.
-            // We use July 21, 2025 as a reference "work day".
-            const referenceDate = new Date('2025-07-21T00:00:00-03:00');
-            const referenceStatus = 'work'; // 'work' or 'off'
-            const cycleLength = 4; // 2 work days + 2 off days
+            // Lógica dinâmica: baseada na informação "trabalhei ontem e hoje".
+            // Usamos "ontem" como a data de referência para o início de um par de dias de trabalho.
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            const referenceDate = yesterday; // Ontem foi o primeiro dia do par de trabalho.
+            const cycleLength = 4; // 2 dias de trabalho + 2 dias de folga
 
             // --- ELEMENTS ---
             const calendarContainer = document.getElementById('calendar-container');
@@ -93,30 +102,29 @@
             // --- FUNCTIONS ---
 
             /**
-             * Calculates the difference in days between two dates.
-             * @param {Date} date1 The first date.
-             * @param {Date} date2 The second date.
-             * @returns {number} The total number of full days between the two dates.
+             * Calcula a diferença em dias entre duas datas, ignorando horas e fuso horário.
+             * @param {Date} date1 A primeira data.
+             * @param {Date} date2 A segunda data.
+             * @returns {number} O número de dias de diferença.
              */
             function daysDifference(date1, date2) {
-                // Set both dates to midnight in their local timezone to avoid DST issues
-                const d1 = new Date(date1.getFullYear(), date1.getMonth(), date1.getDate());
-                const d2 = new Date(date2.getFullYear(), date2.getMonth(), date2.getDate());
-                const timeDiff = d2.getTime() - d1.getTime();
-                return Math.round(timeDiff / (1000 * 3600 * 24));
+                const d1UTC = Date.UTC(date1.getFullYear(), date1.getMonth(), date1.getDate());
+                const d2UTC = Date.UTC(date2.getFullYear(), date2.getMonth(), date2.getDate());
+                return Math.floor((d2UTC - d1UTC) / (1000 * 60 * 60 * 24));
             }
 
             /**
-             * Determines the work/off status of a given day.
-             * The cycle is: Work, Work, Off, Off.
-             * @param {Date} date The date to check.
-             * @returns {string} 'work-day' or 'off-day'.
+             * Determina o status de trabalho/folga de um dia.
+             * O ciclo é: Trabalho, Trabalho, Folga, Folga.
+             * @param {Date} date A data para verificar.
+             * @returns {string} 'work-day' ou 'off-day'.
              */
             function getDayStatus(date) {
                 const diff = daysDifference(referenceDate, date);
-                const dayInCycle = (diff % cycleLength + cycleLength) % cycleLength; // Handles negative differences
+                // O operador de módulo (%) garante que o ciclo se repita corretamente.
+                const dayInCycle = (diff % cycleLength + cycleLength) % cycleLength;
 
-                // Cycle: 0, 1 are work days. 2, 3 are off days.
+                // Dias 0 e 1 do ciclo são de trabalho. Dias 2 e 3 são de folga.
                 if (dayInCycle < 2) {
                     return 'work-day';
                 } else {
@@ -125,33 +133,33 @@
             }
 
             /**
-             * Generates and displays the calendar for a given year.
-             * @param {number} year The year to display.
+             * Gera e exibe o calendário para um determinado ano.
+             * @param {number} year O ano para exibir.
              */
             function generateCalendar(year) {
-                calendarContainer.innerHTML = ''; // Clear previous calendar
+                calendarContainer.innerHTML = ''; // Limpa o calendário anterior
                 mainTitle.textContent = `Agenda de Escala 2x2 - ${year}`;
                 currentYearEl.textContent = year;
                 
                 const today = new Date();
-                today.setHours(0, 0, 0, 0); // Normalize today's date
+                today.setHours(0, 0, 0, 0); // Normaliza a data de hoje para comparação
 
                 const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-                const dayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+                const dayNames = ["D", "S", "T", "Q", "Q", "S", "S"]; // Abreviações para caber melhor
 
                 for (let month = 0; month < 12; month++) {
                     const monthContainer = document.createElement('div');
-                    monthContainer.className = 'bg-white p-4 rounded-lg shadow-md';
+                    monthContainer.className = 'bg-white p-3 rounded-lg shadow-sm';
 
                     const monthTitle = document.createElement('h3');
-                    monthTitle.className = 'text-xl font-semibold text-center mb-4 text-slate-800';
+                    monthTitle.className = 'text-lg font-semibold text-center mb-3 text-slate-800';
                     monthTitle.textContent = `${monthNames[month]} ${year}`;
                     monthContainer.appendChild(monthTitle);
 
                     const grid = document.createElement('div');
                     grid.className = 'calendar-grid';
 
-                    // Add day headers (Dom, Seg, etc.)
+                    // Cabeçalho dos dias da semana
                     dayNames.forEach(dayName => {
                         const dayHeader = document.createElement('div');
                         dayHeader.className = 'text-center font-medium text-xs text-slate-500';
@@ -161,23 +169,22 @@
 
                     const firstDayOfMonth = new Date(year, month, 1);
                     const daysInMonth = new Date(year, month + 1, 0).getDate();
-                    const startingDay = firstDayOfMonth.getDay(); // 0 for Sunday, 1 for Monday...
+                    const startingDay = firstDayOfMonth.getDay();
 
-                    // Add blank cells for days before the 1st of the month
+                    // Células em branco para o início do mês
                     for (let i = 0; i < startingDay; i++) {
                         grid.appendChild(document.createElement('div'));
                     }
 
-                    // Add day cells
+                    // Células dos dias
                     for (let day = 1; day <= daysInMonth; day++) {
                         const currentDate = new Date(year, month, day);
                         const dayCell = document.createElement('div');
-                        dayCell.className = 'day flex items-center justify-center rounded-full font-semibold text-sm transition-transform duration-200 hover:scale-110';
+                        dayCell.className = 'day flex items-center justify-center rounded-full font-semibold text-xs sm:text-sm transition-transform duration-200 hover:scale-110';
                         
                         const statusClass = getDayStatus(currentDate);
                         dayCell.classList.add(statusClass);
                         
-                        // Highlight today's date
                         if (currentDate.getTime() === today.getTime()) {
                             dayCell.classList.add('today', 'relative');
                         }
