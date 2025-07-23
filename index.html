@@ -1,199 +1,436 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class=""> <!-- A classe 'dark' será adicionada aqui pelo JS -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agenda de Escala 2x2</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Ícones para os botões e indicadores -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            /* Cores Padrão (Modo Claro) - Serão atualizadas pelo JS */
+            --color-bg-primary: #f1f5f9;
+            --color-bg-secondary: #ffffff;
+            --color-text-primary: #1e293b;
+            --color-text-secondary: #475569;
+            --color-border: #e2e8f0;
+            --color-work-day: #dbeafe;
+            --color-work-text: #1e40af;
+            --color-off-day: #dcfce7;
+            --color-off-text: #166534;
+            --color-holiday: #f3e8ff;
+            --color-holiday-text: #581c87;
+            --color-today-shadow: rgba(234, 179, 8, 0.9);
+        }
+
+        .dark:root {
+            /* Cores Padrão (Modo Escuro) */
+            --color-bg-primary: #0f172a;
+            --color-bg-secondary: #1e293b;
+            --color-text-primary: #f1f5f9;
+            --color-text-secondary: #94a3b8;
+            --color-border: #334155;
+            --color-work-day: #1e3a8a;
+            --color-work-text: #bfdbfe;
+            --color-off-day: #166534;
+            --color-off-text: #dcfce7;
+            --color-holiday: #581c87;
+            --color-holiday-text: #f3e8ff;
+            --color-today-shadow: rgba(251, 191, 36, 0.9);
+        }
+
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f1f5f9; /* slate-100 */
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            transition: background-color 0.3s, color 0.3s;
         }
-        .calendar-grid {
-            display: grid;
-            grid-template-columns: repeat(7, minmax(0, 1fr));
-            gap: 2px;
-        }
-        .day {
-            aspect-ratio: 1 / 1;
-        }
-        .work-day {
-            background-color: #dbeafe; /* blue-100 */
-            color: #1e40af; /* blue-800 */
-            border: 1px solid #bfdbfe; /* blue-200 */
-        }
-        .off-day {
-            background-color: #dcfce7; /* green-100 */
-            color: #166534; /* green-800 */
-            border: 1px solid #a7f3d0; /* green-200 */
-        }
-        .today {
-            box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.9);
-            z-index: 10;
-        }
+
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
+        .day { aspect-ratio: 1 / 1; cursor: pointer; position: relative; }
+        .day-content { transition: transform 0.2s; }
+        .day-content:hover { transform: scale(1.1); z-index: 20; }
+        
+        .work-day { background-color: var(--color-work-day); color: var(--color-work-text); }
+        .off-day { background-color: var(--color-off-day); color: var(--color-off-text); }
+        .holiday { background-color: var(--color-holiday); color: var(--color-holiday-text); }
+        .today { box-shadow: 0 0 0 3px var(--color-today-shadow); z-index: 10; }
+        .event-indicator { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; background-color: #ef4444; border-radius: 50%; }
+        
+        /* Estilos para o Modal */
+        .modal { display: none; }
+        .modal.is-open { display: flex; }
     </style>
 </head>
-<body class="antialiased text-slate-800 p-2 sm:p-4 md:p-6">
+<body class="antialiased p-2 sm:p-4 md:p-6">
 
     <div class="max-w-7xl mx-auto">
-        <header class="text-center mb-6">
-            <h1 id="main-title" class="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900">Agenda de Escala 2x2</h1>
-            <p class="mt-1 sm:mt-2 text-base sm:text-lg text-slate-600">Sua escala de trabalho e folgas.</p>
+        <!-- CABEÇALHO E CONTROLES -->
+        <header class="text-center mb-4">
+            <h1 id="main-title" class="text-2xl sm:text-3xl lg:text-4xl font-bold">Agenda de Escala 2x2 PRO</h1>
+            <p id="sub-title" class="mt-1 text-base sm:text-lg" style="color: var(--color-text-secondary);">Sua vida organizada em um só lugar.</p>
         </header>
 
-        <div class="flex flex-wrap justify-center items-center space-x-4 sm:space-x-6 mb-6 p-3 bg-white rounded-lg shadow-sm">
+        <!-- PAINEL DE CONTROLE -->
+        <div class="p-3 mb-6 rounded-lg shadow-md flex flex-wrap justify-center items-center gap-4" style="background-color: var(--color-bg-secondary); border: 1px solid var(--color-border);">
+            <!-- NAVEGAÇÃO DE ANO -->
             <div class="flex items-center space-x-2">
-                <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full work-day"></div>
-                <span class="text-sm sm:text-base font-medium">Trabalho</span>
+                <button id="prev-year" class="px-3 py-2 rounded-md hover:opacity-80 transition-opacity"><i class="fa-solid fa-chevron-left"></i></button>
+                <span id="current-year" class="text-xl sm:text-2xl font-bold w-24 text-center">2025</span>
+                <button id="next-year" class="px-3 py-2 rounded-md hover:opacity-80 transition-opacity"><i class="fa-solid fa-chevron-right"></i></button>
             </div>
-            <div class="flex items-center space-x-2">
-                <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full off-day"></div>
-                <span class="text-sm sm:text-base font-medium">Folga</span>
+            <!-- BOTÕES DE AÇÃO -->
+            <div class="flex items-center gap-2">
+                <button id="export-ics" class="px-3 py-2 rounded-md text-sm font-semibold" title="Exportar para Calendário (.ics)"><i class="fa-solid fa-download mr-1"></i> Exportar</button>
+                <button id="toggle-settings" class="px-3 py-2 rounded-md text-sm font-semibold" title="Configurações"><i class="fa-solid fa-palette mr-1"></i> Cores</button>
+                <button id="toggle-dark-mode" class="px-3 py-2 rounded-md text-sm font-semibold" title="Alternar Modo Escuro"><i class="fa-solid fa-moon"></i></button>
             </div>
         </div>
         
-        <div class="flex justify-center items-center space-x-2 sm:space-x-4 mb-6">
-            <button id="prev-year" class="px-3 py-2 bg-white rounded-lg shadow-sm hover:bg-slate-100 transition-colors duration-200 font-semibold text-slate-700 text-sm sm:text-base">&lt; Ano</button>
-            <span id="current-year" class="text-xl sm:text-2xl font-bold text-slate-900">2025</span>
-            <button id="next-year" class="px-3 py-2 bg-white rounded-lg shadow-sm hover:bg-slate-100 transition-colors duration-200 font-semibold text-slate-700 text-sm sm:text-base">Ano &gt;</button>
+        <!-- LEGENDA -->
+        <div class="flex flex-wrap justify-center items-center gap-x-4 gap-y-2 mb-6 text-xs sm:text-sm">
+             <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-full work-day"></div><span>Trabalho</span></div>
+             <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-full off-day"></div><span>Folga</span></div>
+             <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-full holiday"></div><span>Feriado</span></div>
+             <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-full relative"><div class="event-indicator"></div></div><span>Evento</span></div>
         </div>
 
+        <!-- CALENDÁRIO -->
         <div id="calendar-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            <!-- Os meses serão gerados pelo JavaScript aqui -->
+            <!-- Meses gerados pelo JS -->
+        </div>
+    </div>
+
+    <!-- MODAL DE EVENTOS -->
+    <div id="event-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4">
+        <div class="p-6 rounded-lg shadow-xl w-full max-w-md" style="background-color: var(--color-bg-secondary);">
+            <h3 id="modal-title" class="text-xl font-bold mb-4">Adicionar/Editar Evento</h3>
+            <p id="modal-date" class="mb-4 font-semibold" style="color: var(--color-text-secondary);"></p>
+            <textarea id="event-text" class="w-full p-2 rounded-md border" style="background-color: var(--color-bg-primary); border-color: var(--color-border);" rows="3" placeholder="Ex: Aniversário do João..."></textarea>
+            <div class="mt-4 flex justify-end gap-2">
+                <button id="delete-event" class="px-4 py-2 rounded-md bg-red-600 text-white font-semibold hover:bg-red-700">Excluir</button>
+                <button id="save-event" class="px-4 py-2 rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700">Salvar</button>
+                <button id="close-modal" class="px-4 py-2 rounded-md font-semibold" style="border: 1px solid var(--color-border);">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAINEL DE CONFIGURAÇÕES DE CORES -->
+    <div id="settings-panel" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4">
+        <div class="p-6 rounded-lg shadow-xl w-full max-w-md" style="background-color: var(--color-bg-secondary);">
+            <h3 class="text-xl font-bold mb-4">Personalizar Cores</h3>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="flex items-center justify-between"><label for="work-color-picker">Trabalho:</label><input type="color" id="work-color-picker"></div>
+                <div class="flex items-center justify-between"><label for="off-color-picker">Folga:</label><input type="color" id="off-color-picker"></div>
+                <div class="flex items-center justify-between"><label for="holiday-color-picker">Feriado:</label><input type="color" id="holiday-color-picker"></div>
+            </div>
+            <div class="mt-6 flex justify-end gap-2">
+                <button id="reset-colors" class="px-4 py-2 rounded-md font-semibold" style="border: 1px solid var(--color-border);">Restaurar Padrão</button>
+                <button id="close-settings" class="px-4 py-2 rounded-md bg-blue-600 text-white font-semibold">Fechar</button>
+            </div>
         </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // --- CONFIGURATION ---
-            // CORRIGIDO: A data de referência agora é fixa em 21 de julho de 2025, um dia de trabalho.
-            // Usar UTC (Coordinated Universal Time) evita problemas com fuso horário.
-            const referenceDate = new Date(Date.UTC(2025, 6, 21)); // Mês 6 é Julho (0-indexed)
-            const cycleLength = 4; // 2 dias de trabalho + 2 dias de folga
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- CONFIGURAÇÃO INICIAL ---
+        const referenceDate = new Date(Date.UTC(2025, 6, 21)); // 21 de Julho de 2025
+        const cycleLength = 4;
+        let currentYear = 2025;
+        let events = {};
+        let selectedDateStr = '';
 
-            // --- ELEMENTS ---
-            const calendarContainer = document.getElementById('calendar-container');
-            const mainTitle = document.getElementById('main-title');
-            const currentYearEl = document.getElementById('current-year');
-            const prevYearBtn = document.getElementById('prev-year');
-            const nextYearBtn = document.getElementById('next-year');
+        // --- ELEMENTOS DO DOM ---
+        const calendarContainer = document.getElementById('calendar-container');
+        const currentYearEl = document.getElementById('current-year');
+        const mainTitle = document.getElementById('main-title');
+        const subTitle = document.getElementById('sub-title');
+        const htmlEl = document.documentElement;
 
-            // --- STATE ---
-            let currentYear = 2025; // Inicia no ano da data de referência
+        // Modais
+        const eventModal = document.getElementById('event-modal');
+        const settingsPanel = document.getElementById('settings-panel');
 
-            // --- FUNCTIONS ---
+        // --- LÓGICA DE DATAS E ESCALA ---
+        const getDayStatus = (date) => {
+            const dateUTC = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+            const diff = Math.floor((dateUTC - referenceDate.getTime()) / (1000 * 60 * 60 * 24));
+            const dayInCycle = (diff % cycleLength + cycleLength) % cycleLength;
+            return dayInCycle < 2 ? 'work-day' : 'off-day';
+        };
 
-            /**
-             * Calcula a diferença em dias entre duas datas, usando UTC para consistência.
-             * @param {Date} date1 A primeira data.
-             * @param {Date} date2 A segunda data.
-             * @returns {number} O número de dias de diferença.
-             */
-            function daysDifference(date1, date2) {
-                // Normaliza a segunda data para UTC também
-                const d2UTC = Date.UTC(date2.getFullYear(), date2.getMonth(), date2.getDate());
-                return Math.floor((d2UTC - date1.getTime()) / (1000 * 60 * 60 * 24));
-            }
+        const holidays = { // Feriados Nacionais e Pontos Facultativos comuns no Brasil para 2025
+            '2025-01-01': 'Confraternização Universal',
+            '2025-03-03': 'Carnaval',
+            '2025-03-04': 'Carnaval',
+            '2025-04-18': 'Paixão de Cristo',
+            '2025-04-21': 'Tiradentes',
+            '2025-05-01': 'Dia do Trabalho',
+            '2025-06-19': 'Corpus Christi',
+            '2025-09-07': 'Independência do Brasil',
+            '2025-10-12': 'Nossa Senhora Aparecida',
+            '2025-11-02': 'Finados',
+            '2025-11-15': 'Proclamação da República',
+            '2025-11-20': 'Dia da Consciência Negra',
+            '2025-12-25': 'Natal',
+        };
 
-            /**
-             * Determina o status de trabalho/folga de um dia.
-             * O ciclo é: Trabalho, Trabalho, Folga, Folga.
-             * @param {Date} date A data para verificar.
-             * @returns {string} 'work-day' ou 'off-day'.
-             */
-            function getDayStatus(date) {
-                const diff = daysDifference(referenceDate, date);
-                const dayInCycle = (diff % cycleLength + cycleLength) % cycleLength;
+        // --- GERAÇÃO DO CALENDÁRIO ---
+        const generateCalendar = (year) => {
+            calendarContainer.innerHTML = '';
+            currentYearEl.textContent = year;
+            mainTitle.textContent = `Agenda de Escala 2x2 PRO - ${year}`;
 
-                // Dias 0 e 1 do ciclo (21 e 22 de Julho) são de trabalho. Dias 2 e 3 são de folga.
-                if (dayInCycle < 2) {
-                    return 'work-day';
-                } else {
-                    return 'off-day';
-                }
-            }
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+            const dayNames = ["D", "S", "T", "Q", "Q", "S", "S"];
 
-            /**
-             * Gera e exibe o calendário para um determinado ano.
-             * @param {number} year O ano para exibir.
-             */
-            function generateCalendar(year) {
-                calendarContainer.innerHTML = '';
-                mainTitle.textContent = `Agenda de Escala 2x2 - ${year}`;
-                currentYearEl.textContent = year;
-                
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
+            let nextOffDay = null;
 
-                const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-                const dayNames = ["D", "S", "T", "Q", "Q", "S", "S"];
+            for (let month = 0; month < 12; month++) {
+                const monthContainer = document.createElement('div');
+                monthContainer.className = 'p-3 rounded-lg shadow-sm';
+                monthContainer.style.backgroundColor = 'var(--color-bg-secondary)';
+                monthContainer.style.border = '1px solid var(--color-border)';
 
-                for (let month = 0; month < 12; month++) {
-                    const monthContainer = document.createElement('div');
-                    monthContainer.className = 'bg-white p-3 rounded-lg shadow-sm';
+                const monthTitle = document.createElement('h3');
+                monthTitle.className = 'text-lg font-semibold text-center mb-2';
+                monthTitle.textContent = `${monthNames[month]} ${year}`;
+                monthContainer.appendChild(monthTitle);
 
-                    const monthTitle = document.createElement('h3');
-                    monthTitle.className = 'text-lg font-semibold text-center mb-3 text-slate-800';
-                    monthTitle.textContent = `${monthNames[month]} ${year}`;
-                    monthContainer.appendChild(monthTitle);
+                const grid = document.createElement('div');
+                grid.className = 'calendar-grid';
 
-                    const grid = document.createElement('div');
-                    grid.className = 'calendar-grid';
+                dayNames.forEach(name => {
+                    const dayHeader = document.createElement('div');
+                    dayHeader.className = 'text-center font-medium text-xs';
+                    dayHeader.style.color = 'var(--color-text-secondary)';
+                    dayHeader.textContent = name;
+                    grid.appendChild(dayHeader);
+                });
 
-                    dayNames.forEach(dayName => {
-                        const dayHeader = document.createElement('div');
-                        dayHeader.className = 'text-center font-medium text-xs text-slate-500';
-                        dayHeader.textContent = dayName;
-                        grid.appendChild(dayHeader);
-                    });
+                const firstDayOfMonth = new Date(year, month, 1);
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const startingDay = firstDayOfMonth.getDay();
+                for (let i = 0; i < startingDay; i++) grid.appendChild(document.createElement('div'));
 
-                    const firstDayOfMonth = new Date(year, month, 1);
-                    const daysInMonth = new Date(year, month + 1, 0).getDate();
-                    const startingDay = firstDayOfMonth.getDay();
+                let workCount = 0, offCount = 0, holidayCount = 0;
 
-                    for (let i = 0; i < startingDay; i++) {
-                        grid.appendChild(document.createElement('div'));
-                    }
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const currentDate = new Date(year, month, day);
+                    const dateStr = currentDate.toISOString().slice(0, 10);
+                    
+                    const dayCell = document.createElement('div');
+                    dayCell.className = 'day flex items-center justify-center rounded-full font-semibold text-xs sm:text-sm';
+                    dayCell.dataset.date = dateStr;
 
-                    for (let day = 1; day <= daysInMonth; day++) {
-                        const currentDate = new Date(year, month, day);
-                        const dayCell = document.createElement('div');
-                        dayCell.className = 'day flex items-center justify-center rounded-full font-semibold text-xs sm:text-sm transition-transform duration-200 hover:scale-110';
-                        
-                        const statusClass = getDayStatus(currentDate);
-                        dayCell.classList.add(statusClass);
-                        
-                        if (currentDate.getTime() === today.getTime()) {
-                            dayCell.classList.add('today', 'relative');
+                    const dayContent = document.createElement('div');
+                    dayContent.className = 'day-content w-full h-full flex items-center justify-center rounded-full';
+                    dayContent.textContent = day;
+                    
+                    const holidayName = holidays[dateStr];
+                    let statusClass = getDayStatus(currentDate);
+
+                    if (holidayName) {
+                        statusClass = 'holiday';
+                        dayContent.title = holidayName;
+                        holidayCount++;
+                    } else if (statusClass === 'work-day') {
+                        workCount++;
+                    } else {
+                        offCount++;
+                        if (!nextOffDay && currentDate >= today) {
+                            nextOffDay = currentDate;
                         }
-
-                        dayCell.textContent = day;
-                        grid.appendChild(dayCell);
+                    }
+                    
+                    dayContent.classList.add(statusClass);
+                    if (currentDate.getTime() === today.getTime()) dayContent.classList.add('today');
+                    if (events[dateStr]) {
+                        const eventIndicator = document.createElement('div');
+                        eventIndicator.className = 'event-indicator';
+                        dayContent.appendChild(eventIndicator);
+                        dayContent.title = events[dateStr];
                     }
 
-                    monthContainer.appendChild(grid);
-                    calendarContainer.appendChild(monthContainer);
+                    dayCell.appendChild(dayContent);
+                    grid.appendChild(dayCell);
+                }
+                monthContainer.appendChild(grid);
+
+                // Resumo Mensal
+                const summary = document.createElement('div');
+                summary.className = 'mt-3 pt-2 text-xs text-center border-t';
+                summary.style.borderColor = 'var(--color-border)';
+                summary.style.color = 'var(--color-text-secondary)';
+                summary.innerHTML = `T: ${workCount} | F: ${offCount} | Feriados: ${holidayCount}`;
+                monthContainer.appendChild(summary);
+
+                calendarContainer.appendChild(monthContainer);
+            }
+            
+            // Atualiza subtítulo com próxima folga
+            if(nextOffDay) {
+                const diffDays = Math.ceil((nextOffDay - today) / (1000 * 60 * 60 * 24));
+                subTitle.textContent = `Próxima folga em ${diffDays} dia(s) (${nextOffDay.toLocaleDateString()}).`;
+            } else {
+                subTitle.textContent = 'Sua vida organizada em um só lugar.';
+            }
+        };
+
+        // --- LÓGICA DE EVENTOS (LocalStorage) ---
+        const loadEvents = () => { events = JSON.parse(localStorage.getItem('calendarEvents')) || {}; };
+        const saveEvents = () => { localStorage.setItem('calendarEvents', JSON.stringify(events)); };
+
+        calendarContainer.addEventListener('click', (e) => {
+            const dayCell = e.target.closest('.day');
+            if (!dayCell) return;
+            selectedDateStr = dayCell.dataset.date;
+            const date = new Date(selectedDateStr + 'T00:00:00');
+            
+            document.getElementById('modal-date').textContent = date.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            document.getElementById('event-text').value = events[selectedDateStr] || '';
+            document.getElementById('delete-event').style.display = events[selectedDateStr] ? 'inline-block' : 'none';
+            eventModal.classList.add('is-open');
+        });
+
+        document.getElementById('save-event').addEventListener('click', () => {
+            const text = document.getElementById('event-text').value.trim();
+            if (text) {
+                events[selectedDateStr] = text;
+            } else {
+                delete events[selectedDateStr];
+            }
+            saveEvents();
+            generateCalendar(currentYear);
+            eventModal.classList.remove('is-open');
+        });
+
+        document.getElementById('delete-event').addEventListener('click', () => {
+            delete events[selectedDateStr];
+            saveEvents();
+            generateCalendar(currentYear);
+            eventModal.classList.remove('is-open');
+        });
+
+        document.getElementById('close-modal').addEventListener('click', () => eventModal.classList.remove('is-open'));
+
+        // --- EXPORTAÇÃO .ICS ---
+        document.getElementById('export-ics').addEventListener('click', () => {
+            let icsString = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'PRODID:-//SeuApp//Agenda de Escala 2x2//PT',
+            ];
+
+            for (let month = 0; month < 12; month++) {
+                for (let day = 1; day <= 31; day++) {
+                    const date = new Date(currentYear, month, day);
+                    if (date.getMonth() !== month) continue; // Garante que não passamos para o próximo mês
+                    
+                    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+                    const status = holidays[date.toISOString().slice(0, 10)] ? 'Feriado' : (getDayStatus(date) === 'work-day' ? 'Trabalho' : 'Folga');
+                    let summary = status;
+                    if(status === 'Feriado') summary = holidays[date.toISOString().slice(0, 10)];
+
+                    icsString.push('BEGIN:VEVENT');
+                    icsString.push(`UID:${dateStr}@seuapp.com`);
+                    icsString.push(`DTSTAMP:${new Date().toISOString().replace(/[-:.]/g, '')}Z`);
+                    icsString.push(`DTSTART;VALUE=DATE:${dateStr}`);
+                    icsString.push(`SUMMARY:${summary}`);
+                    icsString.push('END:VEVENT');
                 }
             }
+            icsString.push('END:VCALENDAR');
 
-            // --- EVENT LISTENERS ---
-            prevYearBtn.addEventListener('click', () => {
-                currentYear--;
-                generateCalendar(currentYear);
-            });
-
-            nextYearBtn.addEventListener('click', () => {
-                currentYear++;
-                generateCalendar(currentYear);
-            });
-
-            // --- INITIALIZATION ---
-            generateCalendar(currentYear);
+            const blob = new Blob([icsString.join('\r\n')], { type: 'text/calendar' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `escala_${currentYear}.ics`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         });
+
+        // --- NAVEGAÇÃO E TEMAS ---
+        document.getElementById('prev-year').addEventListener('click', () => generateCalendar(--currentYear));
+        document.getElementById('next-year').addEventListener('click', () => generateCalendar(++currentYear));
+        
+        const applyTheme = (theme) => {
+            if (theme === 'dark') {
+                htmlEl.classList.add('dark');
+                document.querySelector('#toggle-dark-mode i').classList.replace('fa-moon', 'fa-sun');
+            } else {
+                htmlEl.classList.remove('dark');
+                document.querySelector('#toggle-dark-mode i').classList.replace('fa-sun', 'fa-moon');
+            }
+        };
+
+        document.getElementById('toggle-dark-mode').addEventListener('click', () => {
+            const newTheme = htmlEl.classList.contains('dark') ? 'light' : 'dark';
+            localStorage.setItem('calendarTheme', newTheme);
+            applyTheme(newTheme);
+        });
+
+        // --- CONFIGURAÇÕES DE CORES ---
+        const colorPickers = {
+            '--color-work-day': document.getElementById('work-color-picker'),
+            '--color-off-day': document.getElementById('off-color-picker'),
+            '--color-holiday': document.getElementById('holiday-color-picker'),
+        };
+
+        const loadColors = () => {
+            const savedColors = JSON.parse(localStorage.getItem('calendarColors')) || {};
+            Object.keys(colorPickers).forEach(key => {
+                const color = savedColors[key] || getComputedStyle(htmlEl).getPropertyValue(key).trim();
+                htmlEl.style.setProperty(key, color);
+                colorPickers[key].value = color;
+            });
+        };
+        
+        const saveColors = () => {
+            const newColors = {};
+            Object.keys(colorPickers).forEach(key => {
+                newColors[key] = colorPickers[key].value;
+            });
+            localStorage.setItem('calendarColors', JSON.stringify(newColors));
+        };
+
+        Object.values(colorPickers).forEach(picker => {
+            picker.addEventListener('input', (e) => {
+                htmlEl.style.setProperty(e.target.id.replace('-picker', ''), e.target.value);
+                saveColors();
+            });
+        });
+
+        document.getElementById('toggle-settings').addEventListener('click', () => settingsPanel.classList.add('is-open'));
+        document.getElementById('close-settings').addEventListener('click', () => settingsPanel.classList.remove('is-open'));
+        document.getElementById('reset-colors').addEventListener('click', () => {
+            localStorage.removeItem('calendarColors');
+            // Recarrega as cores padrão sem recarregar a página
+            const defaultColors = {
+                light: { '--color-work-day': '#dbeafe', '--color-off-day': '#dcfce7', '--color-holiday': '#f3e8ff' },
+                dark: { '--color-work-day': '#1e3a8a', '--color-off-day': '#166534', '--color-holiday': '#581c87' }
+            };
+            const currentTheme = htmlEl.classList.contains('dark') ? 'dark' : 'light';
+            Object.entries(defaultColors[currentTheme]).forEach(([key, value]) => {
+                htmlEl.style.setProperty(key, value);
+                colorPickers[key].value = value;
+            });
+        });
+
+        // --- INICIALIZAÇÃO ---
+        loadEvents();
+        const savedTheme = localStorage.getItem('calendarTheme') || 'light';
+        applyTheme(savedTheme);
+        loadColors();
+        generateCalendar(currentYear);
+    });
     </script>
 </body>
 </html>
